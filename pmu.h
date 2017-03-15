@@ -14,7 +14,7 @@
 #include <unistd.h>
 #include <iostream>
 #include <mutex>
-
+#include <sys/time.h>
 
 template <bool s> class Storage;
 
@@ -24,12 +24,13 @@ template<> class Storage<true> {
   int fd;
 };
 
-template <typename T, bool s> class OptionalStorage;
+template <typename T, bool s> struct OptionalStorage {};
 
-template<typename T> class OptionalStorage<T, false> {};
+//template<typename T> struct OptionalStorage<T, false> {};
 
-template<typename T> class OptionalStorage<T, true>
+template<typename T> struct OptionalStorage<T, true>
 {
+  OptionalStorage() : val() {}
   T val;
 };
 
@@ -45,30 +46,6 @@ template <> struct sumbits<0> {
   static constexpr uint8_t value = 0;
 };
 
-template <int M> class X {
-
-
-  static constexpr uint8_t bits = sumbits<M>::value;
-public:
-  int fds[bits];
-  Storage< M & (1<<0) > s0;
-
-  X(){
-    for(int i=0; i<100;i++) {
-      if(M & (1<<i)) {
-
-      }
-    }
-    //static_assert(I==M,"");
-  }
-  //static_assert(I==M,"x");
-};
-
-void xxxx() {
-  X<1> x;
-  //close(x.fd);
-
-}
 
 
 
@@ -85,11 +62,17 @@ enum counters {
   BUS_CYCLES		= 6,
   STALLED_CYCLES_FRONTEND	= 7,
   STALLED_CYCLES_BACKEND	= 8,
-  REF_CPU_CYCLES		= 9,
-  PMU_COUNTER_COUNT = 10,
-  TIME_ELAPSED = 30,
-  MEASUREMENT_COUNT = 31,
+  REF_CPU_CYCLES		= 9
 };
+static constexpr uint32_t PMU_COUNTER_COUNT = 10;
+
+extern const char* counters_names[PMU_COUNTER_COUNT];
+
+
+static constexpr uint32_t TIME_ELAPSED = 30;
+static constexpr uint32_t MEASUREMENT_COUNT = 31;
+
+//static counter names
 
 struct hw_counters {
   hw_counters();
@@ -101,6 +84,8 @@ struct hw_counters {
 
 struct hw_counters& get_hw_counters();
 
+
+
 template <uint64_t _events> class counter
 {
 public:
@@ -109,12 +94,101 @@ public:
 
   static constexpr bool count_uses = (events & (1 << MEASUREMENT_COUNT)) != 0;
   static constexpr bool count_time = (events & (1 << TIME_ELAPSED)) != 0;
+
   std::atomic<uint64_t> hw_values[active_hw_counters];
+private:
   OptionalStorage<std::atomic<uint64_t>, count_uses> use_count;
   OptionalStorage<std::atomic<uint64_t>, count_time> time_elapsed;
+  std::string name;
+public:
+
+
+private:
+  template <uint64_t events, bool b> friend struct INC;
+  template <uint64_t events, bool b> struct INC
+  {
+    static void inc(counter<events>&r) {}
+  };
+  template <uint64_t events> struct INC<events, true>
+  {
+    static void inc(counter<events>&r)
+    {
+      r.use_count.val += 1;
+    }
+  };
+
+  template <uint64_t events, bool b> friend struct CLK;
+  template <uint64_t events, bool b> struct CLK
+  {
+    static void start(counter<events>& r) {}
+    static void stop(counter<events>& r) {}
+  };
+  template <uint64_t events> struct CLK<events, true>
+  {
+    static uint64_t now_usec()
+    {
+      struct timeval tv;
+      gettimeofday(&tv, nullptr);
+      return tv.tv_sec*1000000 + tv.tv_usec;
+    }
+    static void start(counter<events>& r) { r.time_elapsed.val -= now_usec(); }
+    static void stop(counter<events>& r) { r.time_elapsed.val += now_usec(); }
+  };
+
+
+  template <uint64_t events, bool b> friend struct TimePrinter;
+  template <uint64_t events, bool b> struct TimePrinter
+  {
+    static void print(counter<events>& r) {}
+  };
+  template <uint64_t events> struct TimePrinter<events, true>
+  {
+    static void print(counter<events>& r)
+    {
+      printf("%25s: %luus\n","time elapsed", r.time_elapsed.val.load());
+    }
+  };
+
+  template <uint64_t events, bool b> friend struct UsesPrinter;
+  template <uint64_t events, bool b> struct UsesPrinter
+  {
+    static void print(counter<events>& r) {}
+  };
+  template <uint64_t events> struct UsesPrinter<events, true>
+  {
+    static void print(counter<events>& r)
+    {
+      printf("%25s: %lu\n","use count", r.use_count.val.load());
+    }
+  };
+
 
 public:
-  counter()
+  void inc_use_count()
+  {
+    INC<events,count_uses>::inc(*this);
+  }
+  void time_start()
+  {
+    CLK<events,count_time>::start(*this);
+  }
+  void time_stop()
+  {
+    CLK<events,count_time>::stop(*this);
+  }
+
+  void print_time()
+  {
+    TimePrinter<events,count_time>::print(*this);
+  }
+  void print_uses()
+  {
+    UsesPrinter<events,count_uses>::print(*this);
+  }
+
+
+public:
+  counter(const char* name): name(name)
   {
     using namespace std;
     struct hw_counters& counters = get_hw_counters();
@@ -126,6 +200,8 @@ public:
         pos++;
       }
     }
+    for(auto &h : hw_values)
+      h = 0;
   }
   ~counter()
   {
@@ -133,16 +209,24 @@ public:
     int pos=0;
     for (int i=0; i<PMU_COUNTER_COUNT;i++) {
       if ( (events & (1<<i)) != 0 ) {
-        cout << "result " << i << "X "<< hw_values[pos]<< endl;
+        printf("%25s: %lu\n",counters_names[i], hw_values[pos].load());
+        //cout << counters_namesresult " << i << "X "<< hw_values[pos]<< endl;
         pos++;
       }
     }
+    print_time();
+    print_uses();
     //do printing
+
+
   }
+//  template <uint64_t events, bool b> friend class void inc(counter<events>& r);
 
 
-
+  template <uint64_t events> friend class scope;
 };
+
+
 
 template <uint64_t events> class scope {
 public:
@@ -156,6 +240,7 @@ public:
         pos++;
       }
     }
+    counters.time_start();
   };
   ~scope()
   {
@@ -167,6 +252,8 @@ public:
         pos++;
       }
     }
+    counters.time_stop();
+    counters.inc_use_count();
   }
 
 private:
@@ -177,6 +264,6 @@ private:
 
 
 
-pmu::counter<111> cnt;
+
 
 #endif /* PMU_H_ */

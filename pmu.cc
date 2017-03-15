@@ -39,6 +39,26 @@ int perf_event_open(struct perf_event_attr *hw_event, pid_t pid,
 
 using namespace std;
 using namespace pmu;
+
+
+
+
+const char* pmu::counters_names[PMU_COUNTER_COUNT] =
+{
+    "cpu cycles",
+    "instructions",
+    "cache references",
+    "cache misses",
+    "branch instructions",
+    "branch misses",
+    "bus cycles",
+    "stalled cycles frontend",
+    "stalled cycles backend",
+    "ref cpu cycles"
+};
+
+
+
 bool check_perf()
 {
 	int res = access("/proc/sys/kernel/perf_event_paranoid",F_OK);
@@ -104,12 +124,15 @@ uint64_t hw_counters::get_counter(uint32_t counter)
 
 int main(int argc, char** argv)
 {
-  pmu::counter<15> cnt;
+  pmu::counter<1023|(1<<30)|(1<<31)> cnt("aname");
   pmu::scope<cnt.events> b(cnt);
   cout << "du*a" << endl;
 
-  //for(int i = 0; i<1000; i++)
-   // cout << "du*a" << i << endl;
+  for(int i = 0; i<1000; i++)
+  {
+    pmu::scope<cnt.events> b(cnt);
 
+    cout << "du*a" << i << endl;
+  }
 
 }
