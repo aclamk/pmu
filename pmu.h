@@ -16,17 +16,9 @@
 #include <mutex>
 #include <sys/time.h>
 
-template <bool s> class Storage;
 
-template<> class Storage<false> {};
-
-template<> class Storage<true> {
-  int fd;
-};
 
 template <typename T, bool s> struct OptionalStorage {};
-
-//template<typename T> struct OptionalStorage<T, false> {};
 
 template<typename T> struct OptionalStorage<T, true>
 {
@@ -75,6 +67,7 @@ static constexpr uint32_t MEASUREMENT_COUNT = 31;
 //static counter names
 
 struct hw_counters {
+  static constexpr int uninitialized = -2;
   hw_counters();
   ~hw_counters();
   int fd[PMU_COUNTER_COUNT];

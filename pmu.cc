@@ -20,15 +20,6 @@
 #include <asm/unistd.h>
 
 
-int perf_event_open(struct perf_event_attr *hw_event, pid_t pid,
-    int cpu, int group_fd, unsigned long flags)
-{
-  int ret;
-
-  ret = syscall(__NR_perf_event_open, hw_event, pid, cpu,
-      group_fd, flags);
-  return ret;
-}
 
 
 
@@ -57,6 +48,14 @@ const char* pmu::counters_names[PMU_COUNTER_COUNT] =
     "ref cpu cycles"
 };
 
+int perf_event_open(struct perf_event_attr *hw_event, pid_t pid,
+    int cpu, int group_fd, unsigned long flags)
+{
+  int ret;
+  ret = syscall(__NR_perf_event_open, hw_event, pid, cpu,
+      group_fd, flags);
+  return ret;
+}
 
 
 bool check_perf()
@@ -65,11 +64,48 @@ bool check_perf()
 	return res == 0;
 }
 
+int open_hw_counter_on(uint32_t counter)
+{
+  struct perf_event_attr pe;
+
+  memset(&pe, 0, sizeof(struct perf_event_attr));
+  pe.type = PERF_TYPE_HARDWARE;
+  pe.size = sizeof(struct perf_event_attr);
+  pe.config = counter;//PERF_COUNT_HW_INSTRUCTIONS;
+  pe.disabled = 0;
+  pe.exclude_kernel = 1;
+  pe.exclude_hv = 1;
+
+  int fd;
+  fd = perf_event_open(&pe, 0, -1, -1, 0);
+  return fd;
+}
+
+int open_hw_counter_off(uint32_t counter)
+{
+  return -1;
+}
+
+extern "C"
+{
+static int (*resolve_open_hw_counter ()) (uint32_t)
+{
+  if(check_perf) {
+    return open_hw_counter_on;
+  } else {
+    return open_hw_counter_off;
+  }
+}
+}
+
+int open_hw_counter(uint32_t counter) __attribute__ ((ifunc ("resolve_open_hw_counter")));
+
+
 hw_counters::hw_counters()
 {
   for (int i=0; i<PMU_COUNTER_COUNT;i++)
   {
-    fd[i] = -1;
+    fd[i] = uninitialized;
   }
 }
 
@@ -77,16 +113,16 @@ hw_counters::~hw_counters()
 {
   for (int i=0; i<PMU_COUNTER_COUNT;i++)
   {
-    if (fd[i] != -1) {
+    if (fd[i] >= 0)
+    {
       close(fd[i]);
-      fd[i] = -1;
     }
+    fd[i] = uninitialized;
   }
 }
 struct hw_counters& pmu::get_hw_counters()
 {
   thread_local struct hw_counters hw;
-  cout << "hw = " << &hw << endl;
   return hw;
 }
 
@@ -94,22 +130,9 @@ void hw_counters::init_counter(uint32_t counter)
 {
   static std::mutex m;
   m.lock();
-  cout << "counterX " << counter << " = " << fd[counter] << endl;
-
-  if (fd[counter] == -1)
+  if (fd[counter] == uninitialized)
   {
-    struct perf_event_attr pe;
-
-    memset(&pe, 0, sizeof(struct perf_event_attr));
-    pe.type = PERF_TYPE_HARDWARE;
-    pe.size = sizeof(struct perf_event_attr);
-    pe.config = PERF_COUNT_HW_INSTRUCTIONS;
-    pe.disabled = 0;
-    pe.exclude_kernel = 1;
-    pe.exclude_hv = 1;
-
-    fd[counter] = perf_event_open(&pe, 0, -1, -1, 0);
-    cout << "counter " << counter << " = " << fd[counter] << endl;
+    fd[counter] = open_hw_counter(counter);
   }
   m.unlock();
 }
