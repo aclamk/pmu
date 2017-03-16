@@ -45,7 +45,7 @@ enum measurements {
   BRANCH                  = BRANCH_INSTRUCTIONS | BRANCH_MISSES,
   BUS                     = BUS_CYCLES | STALLED_CYCLES_FRONTEND | STALLED_CYCLES_BACKEND,
 
-  ALL                     = CPU | CACHE | BRANCH | BUS | TIME | COUNT
+  ALL                     = CPU | CACHE | BRANCH | BUS | TIME | COUNT | REF_CPU_CYCLES
 };
 
 

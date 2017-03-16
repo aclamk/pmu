@@ -19,13 +19,32 @@ void billion_instructions()
   pmu::scope<cnt.events> b(cnt);
   uint64_t val = 0;
   for (int i = 0; i<200*1000*1000; i++) {
-    val *= 3;
+    val *= 111;
     val += 1;
   }
   write(0, &val, 0);
 }
 
-
+void branch_prediction_half()
+{
+  pmu::counter<pmu::ALL> cnt("circa half prediction branch misses");
+  pmu::scope<cnt.events> b(cnt);
+  uint64_t val = 0;
+  for (int i = 0; i<200*1000*1000; i++)
+  {
+    if (val & 0x10000)
+    {
+      val *= 113;
+      val += 1;
+    }
+    else
+    {
+      val *= 117;
+      val += 7;
+    }
+  }
+  write(0, &val, 0);
+}
 
 
 int main(int argc, char** argv)
@@ -39,5 +58,6 @@ int main(int argc, char** argv)
     cout << "du*a" << i << endl;
   }
   billion_instructions();
+  branch_prediction_half();
 }
 
