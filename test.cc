@@ -25,14 +25,14 @@ void billion_instructions()
   write(0, &val, 0);
 }
 
-void branch_prediction_half()
+void branch_prediction_quarter()
 {
-  pmu::counter<pmu::ALL> cnt("circa half prediction branch misses");
+  pmu::counter<pmu::ALL> cnt("circa 1/4 prediction branch misses");
   pmu::scope<cnt.events> b(cnt);
   uint64_t val = 0;
   for (int i = 0; i<200*1000*1000; i++)
   {
-    if (val & 0x10000)
+    if (rand() & 1)
     {
       val *= 113;
       val += 1;
@@ -46,6 +46,18 @@ void branch_prediction_half()
   write(0, &val, 0);
 }
 
+void cache_hits()
+{
+  pmu::counter<pmu::ALL> cnt("multiple cache hits");
+  pmu::scope<cnt.events> b(cnt);
+  int size=1024*1024*10;
+  char* data = (char*)malloc(size);
+  for (int i = 0; i<200*1000*1000; i++)
+  {
+    data[rand() % size]++;
+  }
+
+}
 
 int main(int argc, char** argv)
 {
@@ -58,6 +70,9 @@ int main(int argc, char** argv)
     cout << "du*a" << i << endl;
   }
   billion_instructions();
-  branch_prediction_half();
+  branch_prediction_quarter();
+  cache_hits();
+
+
 }
 
