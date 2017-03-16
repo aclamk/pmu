@@ -145,11 +145,9 @@ uint64_t hw_counters::get_counter(uint32_t counter)
   return count;
 }
 
-int main(int argc, char** argv)
+int main1(int argc, char** argv)
 {
-  pmu::counter<1023|(1<<30)|(1<<31)> cnt("aname");
-  pmu::scope<cnt.events> b(cnt);
-  cout << "du*a" << endl;
+  pmu::counter<pmu::ALL> cnt("aname");
 
   for(int i = 0; i<1000; i++)
   {

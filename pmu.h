@@ -18,6 +18,69 @@
 
 
 
+
+
+
+
+namespace pmu
+{
+
+enum measurements {
+  CPU_CYCLES              = 1 << 0,
+  INSTRUCTIONS            = 1 << 1,
+  CACHE_REFERENCES        = 1 << 2,
+  CACHE_MISSES            = 1 << 3,
+  BRANCH_INSTRUCTIONS     = 1 << 4,
+  BRANCH_MISSES           = 1 << 5,
+  BUS_CYCLES              = 1 << 6,
+  STALLED_CYCLES_FRONTEND = 1 << 7,
+  STALLED_CYCLES_BACKEND  = 1 << 8,
+  REF_CPU_CYCLES          = 1 << 9,
+
+  TIME                    = 1 << 30,
+  COUNT                   = 1 << 31,
+
+  CPU                     = CPU_CYCLES | INSTRUCTIONS,
+  CACHE                   = CACHE_REFERENCES | CACHE_MISSES,
+  BRANCH                  = BRANCH_INSTRUCTIONS | BRANCH_MISSES,
+  BUS                     = BUS_CYCLES | STALLED_CYCLES_FRONTEND | STALLED_CYCLES_BACKEND,
+
+  ALL                     = CPU | CACHE | BRANCH | BUS | TIME | COUNT
+};
+
+
+#if 0
+enum countersxx {
+  CPU_CYCLES		= 0,
+  INSTRUCTIONS		= 1,
+  CACHE_REFERENCES		= 2,
+  CACHE_MISSES		= 3,
+  BRANCH_INSTRUCTIONS	= 4,
+  BRANCH_MISSES		= 5,
+  BUS_CYCLES		= 6,
+  STALLED_CYCLES_FRONTEND	= 7,
+  STALLED_CYCLES_BACKEND	= 8,
+  REF_CPU_CYCLES		= 9
+};
+#endif
+
+static constexpr uint32_t PMU_COUNTER_COUNT = 10;
+extern const char* counters_names[PMU_COUNTER_COUNT];
+
+//static constexpr uint32_t TIME_ELAPSED = 30;
+//static constexpr uint32_t MEASUREMENT_COUNT = 31;
+
+struct hw_counters {
+  static constexpr int uninitialized = -2;
+  hw_counters();
+  ~hw_counters();
+  int fd[PMU_COUNTER_COUNT];
+  void init_counter(uint32_t counter);
+  uint64_t get_counter(uint32_t counter);
+};
+
+struct hw_counters& get_hw_counters();
+
 template <typename T, bool s> struct OptionalStorage {};
 template<typename T> struct OptionalStorage<T, true> {
   OptionalStorage() : val() {}
@@ -32,48 +95,15 @@ template <> struct sumbits<0> {
 };
 
 
-
-
-namespace pmu
-{
-
-enum counters {
-  CPU_CYCLES		= 0,
-  INSTRUCTIONS		= 1,
-  CACHE_REFERENCES		= 2,
-  CACHE_MISSES		= 3,
-  BRANCH_INSTRUCTIONS	= 4,
-  BRANCH_MISSES		= 5,
-  BUS_CYCLES		= 6,
-  STALLED_CYCLES_FRONTEND	= 7,
-  STALLED_CYCLES_BACKEND	= 8,
-  REF_CPU_CYCLES		= 9
-};
-static constexpr uint32_t PMU_COUNTER_COUNT = 10;
-extern const char* counters_names[PMU_COUNTER_COUNT];
-
-static constexpr uint32_t TIME_ELAPSED = 30;
-static constexpr uint32_t MEASUREMENT_COUNT = 31;
-
-struct hw_counters {
-  static constexpr int uninitialized = -2;
-  hw_counters();
-  ~hw_counters();
-  int fd[PMU_COUNTER_COUNT];
-  void init_counter(uint32_t counter);
-  uint64_t get_counter(uint32_t counter);
-};
-
-struct hw_counters& get_hw_counters();
-
 template <uint64_t _events> class counter
 {
+
 public:
   static constexpr uint64_t events = _events;
 private:
   static constexpr uint8_t active_hw_counters = sumbits< events & ((2<<PMU_COUNTER_COUNT) - 1) >::value;
-  static constexpr bool count_uses = (events & (1 << MEASUREMENT_COUNT)) != 0;
-  static constexpr bool count_time = (events & (1 << TIME_ELAPSED)) != 0;
+  static constexpr bool count_uses = (events & COUNT) != 0;
+  static constexpr bool count_time = (events & TIME) != 0;
 
   std::atomic<uint64_t> hw_values[active_hw_counters];
   OptionalStorage<std::atomic<uint64_t>, count_uses> use_count;
@@ -136,6 +166,8 @@ private:
       printf("%25s: %lu\n","use count", r.use_count.val.load());
     }
   };
+
+
 
   void inc_use_count()
   {
@@ -227,10 +259,13 @@ private:
   counter<events>& counters;
 };
 
+//template <uint32_t x, typename... rest> mask
+
+
+
+
+
 }
-
-
-
 
 
 #endif /* PMU_H_ */
