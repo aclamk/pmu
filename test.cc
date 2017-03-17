@@ -46,6 +46,18 @@ void branch_prediction_quarter()
   write(0, &val, 0);
 }
 
+
+void test_rand()
+{
+  pmu::counter<pmu::ALL> cnt("measure rand() function");
+  pmu::scope<cnt.events> b(cnt);
+  for (int i = 0; i<200*1000*1000; i++)
+  {
+    rand();
+  }
+}
+
+
 void cache_hits()
 {
   pmu::counter<pmu::ALL> cnt("multiple cache hits");
@@ -56,8 +68,8 @@ void cache_hits()
   {
     data[rand() % size]++;
   }
-
 }
+
 
 int main(int argc, char** argv)
 {
@@ -72,6 +84,7 @@ int main(int argc, char** argv)
   billion_instructions();
   branch_prediction_quarter();
   cache_hits();
+  test_rand();
 
 
 }
