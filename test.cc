@@ -9,7 +9,7 @@
 
 #include "pmu.h"
 #include <iostream>
-
+#include <thread>
 using namespace std;
 
 
@@ -98,6 +98,33 @@ void test_measure_only_cpu()
 
 
 
+void code(pmu::counter<pmu::ALL>* cnt)
+{
+  for (int i = 0; i<10*1000; i++)
+  {
+    pmu::scope<pmu::ALL> b(*cnt);
+  }
+}
+void ciii(int i)
+{
+
+}
+void test_multithread()
+{
+  pmu::counter<pmu::ALL> cnt("10000 measurements in 10 threads");
+  thread t[10];
+  for (int i=0; i<10; i++)
+  {
+    t[i] = thread(code, &cnt);
+    //t[i] = thread(ciii, 0);
+  }
+  for (int i=0; i<10; i++)
+  {
+    t[i].join();
+  }
+}
+
+
 int main(int argc, char** argv)
 {
   pmu::counter<pmu::ALL> cnt("counter for entire main()");
@@ -110,6 +137,6 @@ int main(int argc, char** argv)
   test_sleeping_in_loop();
   test_counting_10000_measurements();
   test_measure_only_cpu();
-
+  test_multithread();
 }
 
