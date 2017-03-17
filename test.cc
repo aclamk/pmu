@@ -22,7 +22,7 @@ void billion_instructions()
     val *= 111;
     val += 1;
   }
-  write(0, &val, 0);
+  0 == write(0, &val, 0);
 }
 
 void branch_prediction_quarter()
@@ -43,7 +43,7 @@ void branch_prediction_quarter()
       val += 7;
     }
   }
-  write(0, &val, 0);
+  0 == write(0, &val, 0);
 }
 
 
@@ -83,8 +83,8 @@ int main(int argc, char** argv)
   }
   billion_instructions();
   branch_prediction_quarter();
-  cache_hits();
   test_rand();
+  cache_hits();
 
 
 }

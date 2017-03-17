@@ -141,19 +141,7 @@ uint64_t hw_counters::get_counter(uint32_t counter)
 {
   int f = fd[counter];
   long long count = 0;
-  read(f, &count, sizeof(long long));
+  if (sizeof(long long) != read(f, &count, sizeof(long long)))
+    count = 0;
   return count;
-}
-
-int main1(int argc, char** argv)
-{
-  pmu::counter<pmu::ALL> cnt("aname");
-
-  for(int i = 0; i<1000; i++)
-  {
-    pmu::scope<cnt.events> b(cnt);
-
-    cout << "du*a" << i << endl;
-  }
-
 }
