@@ -87,6 +87,16 @@ void test_counting_10000_measurements()
   }
 }
 
+void test_measure_only_cpu()
+{
+  pmu::counter<pmu::INSTRUCTIONS|pmu::TIME> cnt("10000 measurements, cpu instruction and time");
+  for (int i = 0; i<10*1000; i++)
+  {
+    pmu::scope<cnt.events> b(cnt);
+  }
+}
+
+
 
 int main(int argc, char** argv)
 {
@@ -99,7 +109,7 @@ int main(int argc, char** argv)
   cache_hits();
   test_sleeping_in_loop();
   test_counting_10000_measurements();
-
+  test_measure_only_cpu();
 
 }
 

@@ -49,26 +49,9 @@ enum measurements {
 };
 
 
-#if 0
-enum countersxx {
-  CPU_CYCLES		= 0,
-  INSTRUCTIONS		= 1,
-  CACHE_REFERENCES		= 2,
-  CACHE_MISSES		= 3,
-  BRANCH_INSTRUCTIONS	= 4,
-  BRANCH_MISSES		= 5,
-  BUS_CYCLES		= 6,
-  STALLED_CYCLES_FRONTEND	= 7,
-  STALLED_CYCLES_BACKEND	= 8,
-  REF_CPU_CYCLES		= 9
-};
-#endif
 
 static constexpr uint32_t PMU_COUNTER_COUNT = 10;
 extern const char* counters_names[PMU_COUNTER_COUNT];
-
-//static constexpr uint32_t TIME_ELAPSED = 30;
-//static constexpr uint32_t MEASUREMENT_COUNT = 31;
 
 struct hw_counters {
   static constexpr int uninitialized = -2;
