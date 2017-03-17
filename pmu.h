@@ -177,15 +177,6 @@ private:
 public:
   counter(const char* name): name(name)
   {
-    using namespace std;
-    struct hw_counters& counters = get_hw_counters();
-    int pos=0;
-    for (int i=0; i<PMU_COUNTER_COUNT;i++) {
-      if ( (events & (1<<i)) != 0 ) {
-        counters.init_counter(i);
-        pos++;
-      }
-    }
     for(auto &h : hw_values)
       h = 0;
   }
@@ -246,11 +237,6 @@ public:
 private:
   counter<events>& counters;
 };
-
-//template <uint32_t x, typename... rest> mask
-
-
-
 
 
 }

@@ -97,7 +97,6 @@ void test_measure_only_cpu()
 }
 
 
-
 void code(pmu::counter<pmu::ALL>* cnt)
 {
   for (int i = 0; i<10*1000; i++)
@@ -105,10 +104,8 @@ void code(pmu::counter<pmu::ALL>* cnt)
     pmu::scope<pmu::ALL> b(*cnt);
   }
 }
-void ciii(int i)
-{
 
-}
+
 void test_multithread()
 {
   pmu::counter<pmu::ALL> cnt("10000 measurements in 10 threads");
@@ -116,7 +113,6 @@ void test_multithread()
   for (int i=0; i<10; i++)
   {
     t[i] = thread(code, &cnt);
-    //t[i] = thread(ciii, 0);
   }
   for (int i=0; i<10; i++)
   {

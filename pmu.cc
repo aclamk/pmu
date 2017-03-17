@@ -106,6 +106,7 @@ hw_counters::hw_counters()
   for (int i=0; i<PMU_COUNTER_COUNT;i++)
   {
     fd[i] = uninitialized;
+    init_counter(i);
   }
 }
 
