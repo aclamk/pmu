@@ -62,29 +62,43 @@ void cache_hits()
 {
   pmu::counter<pmu::ALL> cnt("multiple cache hits");
   pmu::scope<cnt.events> b(cnt);
-  int size=1024*1024*10;
+  int size=1024*1024*100;
   char* data = (char*)malloc(size);
   for (int i = 0; i<200*1000*1000; i++)
   {
     data[rand() % size]++;
+  }
+  free(data);
+}
+
+void test_sleeping_in_loop()
+{
+  pmu::counter<pmu::ALL> cnt("sleeping does not cost");
+  pmu::scope<cnt.events> b(cnt);
+  sleep(1);
+}
+
+void test_counting_10000_measurements()
+{
+  pmu::counter<pmu::ALL> cnt("10000 measurements");
+  for (int i = 0; i<10*1000; i++)
+  {
+    pmu::scope<cnt.events> b(cnt);
   }
 }
 
 
 int main(int argc, char** argv)
 {
-  pmu::counter<pmu::ALL> cnt("aname");
+  pmu::counter<pmu::ALL> cnt("counter for entire main()");
+  pmu::scope<cnt.events> b(cnt);
 
-  for(int i = 0; i<1000; i++)
-  {
-    pmu::scope<cnt.events> b(cnt);
-
-    cout << "du*a" << i << endl;
-  }
   billion_instructions();
   branch_prediction_quarter();
   test_rand();
   cache_hits();
+  test_sleeping_in_loop();
+  test_counting_10000_measurements();
 
 
 }
