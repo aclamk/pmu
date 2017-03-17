@@ -210,10 +210,15 @@ public:
   {
     using namespace std;
     int pos=0;
+    struct hw_counters& hw = get_hw_counters();
     printf("%s:\n",name.c_str());
     for (int i=0; i<PMU_COUNTER_COUNT;i++) {
       if ( (events & (1<<i)) != 0 ) {
-        printf("%25s: %lu\n",counters_names[i], hw_values[pos].load());
+        if (hw.fd[i] >= 0) {
+          printf("%25s: %lu\n",counters_names[i], hw_values[pos].load());
+        } else {
+          printf("%25s: N/A\n",counters_names[i]);
+        }
         pos++;
       }
     }
